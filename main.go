@@ -181,7 +181,6 @@ type Config struct {
 func ReadConfig() {
 	data, err := os.ReadFile("config.json")
 	if err != nil {
-		git
 		fmt.Printf("ReadConfig(): Failed to read config\nErr: %s\n=================\n", err)
 	}
 	json.Unmarshal(data, &config)
