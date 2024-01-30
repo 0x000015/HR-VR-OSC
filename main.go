@@ -7,11 +7,12 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/abdfnx/gosh"
 	"github.com/hypebeast/go-osc/osc"
 )
 
@@ -26,6 +27,10 @@ func main() {
 		CreateConfig()
 	}
 	ReadConfig()
+
+	if runtime.GOOS != "windows" {
+		config.ShowSpotify = false
+	}
 
 	fmt.Printf("=== HR-VR-OSC ===\nOSC Port: %d\nSpotify Enabled: %t\nTrend Enabled: %t\nHR Source: %s\n=================\n", config.OSCPort, config.ShowSpotify, config.ShowTrend, config.HeartRateSource)
 
@@ -130,13 +135,15 @@ func GetHeartRate() (string, float64) {
 func GetSpotifyPlaying() string {
 	// Grab the data using Powershell. Calling WinAPI funcs directly is kinda ass.
 	// tldr; filter processes and just get ones called 'Spotify' and the windowtitle isn't null.
-	err, out, errOut := gosh.RunOutput("Get-Process | Where-Object { $_.ProcessName -eq 'Spotify' -and $_.MainWindowTitle -ne '' } | Select-Object MainWindowTitle | Format-Table -AutoSize")
+	// 65001 instructs powershell to use a specific encoding to fix issues where it would output replacement chars for some songs/artists
+	cmd := exec.Command("powershell.exe", "65001", ">", "$null", ";", "Get-Process | Where-Object { $_.ProcessName -eq 'Spotify' -and $_.MainWindowTitle -ne '' } | Select-Object MainWindowTitle | Format-Table -AutoSize")
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Printf("GetSpotifyPlaying(): Error grabbing processes\nErr: %s\n=================\n", err)
-		fmt.Println(errOut)
+		fmt.Printf("GetSpotifyPlaying(): Error grabbing Error parsing output\nErr: %s\n=================\n", err)
+		return "Spotify"
 	}
 	// Split the output otherwise we'll get data from powershell with useless bits
-	data := strings.Split(out, "\n")
+	data := strings.Split(string(out), "\n")
 	// Spotify not running?
 	if len(data) <= 1 {
 		return "Spotify"
