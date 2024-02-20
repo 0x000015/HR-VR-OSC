@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"encoding/json"
@@ -34,7 +34,7 @@ func main() {
 
 	fmt.Printf("=== HR-VR-OSC ===\nOSC Port: %d\nSpotify Enabled: %t\nTrend Enabled: %t\nHR Source: %s\n=================\n", config.OSCPort, config.ShowSpotify, config.ShowTrend, config.HeartRateSource)
 
-	client = osc.NewClient("localhost", config.OSCPort)
+	client = osc.NewClient("127.0.0.1", config.OSCPort)
 	for true {
 		stringHR, floatHR := GetHeartRate()
 		message := stringHR + " BPM"
@@ -136,7 +136,8 @@ func GetSpotifyPlaying() string {
 	// Grab the data using Powershell. Calling WinAPI funcs directly is kinda ass.
 	// tldr; filter processes and just get ones called 'Spotify' and the windowtitle isn't null.
 	// 65001 instructs powershell to use a specific encoding to fix issues where it would output replacement chars for some songs/artists
-	cmd := exec.Command("powershell.exe", "65001", ">", "$null", ";", "Get-Process | Where-Object { $_.ProcessName -eq 'Spotify' -and $_.MainWindowTitle -ne '' } | Select-Object MainWindowTitle | Format-Table -AutoSize")
+	// Note: This doesn't fix all song names apparently. I've only tested JP song titles/artists so far.
+	cmd := exec.Command("powershell.exe", "-c", "chcp", "65001", ">", "$null", ";", "Get-Process | Where-Object { $_.ProcessName -eq 'Spotify' -and $_.MainWindowTitle -ne '' } | Select-Object MainWindowTitle | Format-Table -AutoSize")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("GetSpotifyPlaying(): Error grabbing Error parsing output\nErr: %s\n=================\n", err)
